@@ -10,7 +10,7 @@ Are there OOV n-gram characters? (it's possible that some words have no n-grams 
 
 We do not include null or OOV words since these are not mentioned in the paper. For documents with no words (once OOV words removed), we sample a random word uniformly to avoid model issues.
 
-What is the context size? We suppose it is the intra-sentence attention context size.
+It is unclear what the intra-sentence bias is.
 
 We suppose there is no projection and word embeddings are trained.
 
