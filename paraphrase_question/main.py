@@ -185,9 +185,9 @@ def run_model(
 
     # we do not need LazyAdamOptimizer since embeddings are not updated
     opt = tf.train.AdamOptimizer(learning_rate=lr)
-    # grads = opt.compute_gradients(loss)
-    # train_op = opt.apply_gradients([(grad, var) for grad, var in grads if var != emb])
-    train_op = opt.minimize(loss)
+    grads = opt.compute_gradients(loss)
+    train_op = opt.apply_gradients([(grad, var) for grad, var in grads if var != emb])
+    # train_op = opt.minimize(loss)
 
     # run
     with tf.Session() as sess:
@@ -236,6 +236,7 @@ def main():
     args = arg_parser.parse_args()
     train, val, test = load_data()
     word_to_index = gen_tables(train, val, test)
+    train.extend([(doc[1], doc[0], doc[2]) for doc in train])
     run_model(train, val, test, word_to_index=word_to_index, **json.loads(args.hyperparams))
 
 if __name__ == '__main__':
