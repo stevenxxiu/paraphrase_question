@@ -198,9 +198,7 @@ def run_model(
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=y))
 
     opt = tf.train.AdagradOptimizer(learning_rate=lr)
-    grads = opt.compute_gradients(loss)
-    train_op = opt.apply_gradients([(grad, var) for grad, var in grads if var != emb])
-    # train_op = opt.minimize(loss)
+    train_op = opt.minimize(loss)
 
     # run
     with tf.Session() as sess:
