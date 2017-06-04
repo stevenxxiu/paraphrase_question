@@ -136,7 +136,7 @@ def attend_inter(w, emb, mask, batch_size_):
 
 # noinspection PyTypeChecker
 def run_model(
-    train, val, test, word_to_index, intra_sent, emb_size, context_size,
+    train, val, test, word_to_index, intra_sent, emb_size, emb_glove, context_size,
     n_intra, n_intra_bias, n_attend, n_compare, n_classif, dropout_rate, lr, batch_size, epoch_size
 ):
     # special words
@@ -152,7 +152,8 @@ def run_model(
     training = tf.placeholder(tf.bool, [])
     batch_size_ = tf.shape(X_doc_1)[0]
 
-    emb = tf.Variable(tf.random_normal([len(word_to_index), emb_size], 0, 1))
+    emb_shape = [len(word_to_index), emb_size]
+    emb = tf.Variable(tf.zeros(emb_shape) if emb_glove else tf.random_normal(emb_shape, 0, 1))
     emb_ = [tf.reshape(
         tf.nn.embedding_lookup(emb, [X_doc_1, X_doc_2][i]), [batch_size_, -1, (2 * context_size + 1) * emb_size]
     ) for i in range(2)]
@@ -198,7 +199,9 @@ def run_model(
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=y))
 
     opt = tf.train.AdagradOptimizer(learning_rate=lr)
-    train_op = opt.minimize(loss)
+    grads = opt.compute_gradients(loss)
+    grads = [(grad, var) for grad, var in grads if var != emb] if emb_glove else grads
+    train_op = opt.apply_gradients(grads)
 
     # run
     with tf.Session() as sess:
@@ -210,11 +213,12 @@ def run_model(
         Process(target=sample, args=(val, word_to_index, context_size, epoch_size, batch_size, q_valid)).start()
         Process(target=sample, args=(test, word_to_index, context_size, epoch_size, batch_size, q_test)).start()
 
-        # load pretrained word embeddings
-        emb_0 = tf.Variable(0., validate_shape=False)
-        saver = tf.train.Saver({'emb': emb_0})
-        saver.restore(sess, '__cache__/tf/emb/model.ckpt')
-        sess.run(emb[:tf.shape(emb_0)[0]].assign(emb_0))
+        if emb_glove:
+            # load pretrained word embeddings
+            emb_0 = tf.Variable(0., validate_shape=False)
+            saver = tf.train.Saver({'emb': emb_0})
+            saver.restore(sess, '__cache__/tf/emb/model.ckpt')
+            sess.run(emb[:tf.shape(emb_0)[0]].assign(emb_0))
 
         # train
         print(datetime.datetime.now(), 'started training')

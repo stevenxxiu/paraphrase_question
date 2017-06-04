@@ -1,0 +1,56 @@
+'{
+    "intra_sent": false, "emb_size": 300, "emb_glove": false, "context_size": 1,
+    "n_intra": [400, 200], "n_intra_bias": 10, "n_attend": [400, 200], "n_compare": [400, 200], "n_classif": [400, 200],
+    "dropout_rate": 0.1, "lr": 0.1, "batch_size": 64, "epoch_size": 50
+}'
+2017-06-04 15:44:10.743348 started training
+2017-06-04 15:53:01.527351 finished epoch 0, loss: 0.462068, val acc: 0.785700, test acc: 0.785900
+2017-06-04 15:59:49.167977 finished epoch 1, loss: 0.350581, val acc: 0.810900, test acc: 0.808000
+2017-06-04 16:06:29.270111 finished epoch 2, loss: 0.279728, val acc: 0.817000, test acc: 0.810300
+2017-06-04 16:13:09.767610 finished epoch 3, loss: 0.223231, val acc: 0.813300, test acc: 0.809000
+2017-06-04 16:19:49.373998 finished epoch 4, loss: 0.260446, val acc: 0.818500, test acc: 0.817800
+2017-06-04 16:26:28.891029 finished epoch 5, loss: 0.228763, val acc: 0.807300, test acc: 0.804600
+2017-06-04 16:33:07.815021 finished epoch 6, loss: 0.243862, val acc: 0.796600, test acc: 0.793800
+2017-06-04 16:39:48.649867 finished epoch 7, loss: 0.199245, val acc: 0.812700, test acc: 0.806200
+2017-06-04 16:46:27.910631 finished epoch 8, loss: 0.180241, val acc: 0.810000, test acc: 0.807000
+2017-06-04 16:53:07.787372 finished epoch 9, loss: 0.147742, val acc: 0.808800, test acc: 0.808900
+2017-06-04 16:59:47.170510 finished epoch 10, loss: 0.123829, val acc: 0.811800, test acc: 0.813100
+2017-06-04 17:06:26.808373 finished epoch 11, loss: 0.106499, val acc: 0.808000, test acc: 0.811100
+2017-06-04 17:13:07.165115 finished epoch 12, loss: 0.096972, val acc: 0.810700, test acc: 0.813700
+2017-06-04 17:19:46.860201 finished epoch 13, loss: 0.081018, val acc: 0.809400, test acc: 0.815200
+2017-06-04 17:26:26.598495 finished epoch 14, loss: 0.073145, val acc: 0.812000, test acc: 0.812800
+2017-06-04 17:33:07.038781 finished epoch 15, loss: 0.069006, val acc: 0.810500, test acc: 0.809700
+2017-06-04 17:39:46.886075 finished epoch 16, loss: 0.069753, val acc: 0.808200, test acc: 0.808300
+2017-06-04 17:46:26.790096 finished epoch 17, loss: 0.067476, val acc: 0.810100, test acc: 0.813400
+2017-06-04 17:53:06.939823 finished epoch 18, loss: 0.072664, val acc: 0.805600, test acc: 0.807200
+2017-06-04 17:59:46.809398 finished epoch 19, loss: 0.065691, val acc: 0.807400, test acc: 0.807400
+2017-06-04 18:06:27.405816 finished epoch 20, loss: 0.060399, val acc: 0.808700, test acc: 0.810800
+2017-06-04 18:13:06.822762 finished epoch 21, loss: 0.052530, val acc: 0.805800, test acc: 0.806500
+2017-06-04 18:19:46.929972 finished epoch 22, loss: 0.054389, val acc: 0.807200, test acc: 0.806700
+2017-06-04 18:26:40.108821 finished epoch 23, loss: 0.049982, val acc: 0.808500, test acc: 0.810200
+2017-06-04 18:33:35.490246 finished epoch 24, loss: 0.058155, val acc: 0.807600, test acc: 0.809300
+2017-06-04 18:40:33.567531 finished epoch 25, loss: 0.063689, val acc: 0.810500, test acc: 0.806600
+2017-06-04 18:47:30.241222 finished epoch 26, loss: 0.050633, val acc: 0.811300, test acc: 0.811100
+2017-06-04 18:54:27.687734 finished epoch 27, loss: 0.042759, val acc: 0.811200, test acc: 0.809200
+2017-06-04 19:01:24.637215 finished epoch 28, loss: 0.043089, val acc: 0.814200, test acc: 0.810300
+2017-06-04 19:08:21.913800 finished epoch 29, loss: 0.040436, val acc: 0.813700, test acc: 0.812200
+2017-06-04 19:15:18.106673 finished epoch 30, loss: 0.043069, val acc: 0.806900, test acc: 0.809100
+2017-06-04 19:22:14.376167 finished epoch 31, loss: 0.042232, val acc: 0.809300, test acc: 0.812100
+2017-06-04 19:29:12.208155 finished epoch 32, loss: 0.036610, val acc: 0.811700, test acc: 0.813800
+2017-06-04 19:36:08.924832 finished epoch 33, loss: 0.033872, val acc: 0.808000, test acc: 0.810200
+2017-06-04 19:43:05.108720 finished epoch 34, loss: 0.032571, val acc: 0.809200, test acc: 0.813100
+2017-06-04 19:50:01.636159 finished epoch 35, loss: 0.033755, val acc: 0.809600, test acc: 0.808100
+2017-06-04 19:56:59.119613 finished epoch 36, loss: 0.031967, val acc: 0.813100, test acc: 0.814200
+2017-06-04 20:03:55.824949 finished epoch 37, loss: 0.030079, val acc: 0.815500, test acc: 0.812600
+2017-06-04 20:10:52.249671 finished epoch 38, loss: 0.026476, val acc: 0.811600, test acc: 0.811600
+2017-06-04 20:17:50.962670 finished epoch 39, loss: 0.024917, val acc: 0.810700, test acc: 0.813900
+2017-06-04 20:24:48.246687 finished epoch 40, loss: 0.022840, val acc: 0.813100, test acc: 0.813800
+2017-06-04 20:31:45.827713 finished epoch 41, loss: 0.022449, val acc: 0.813600, test acc: 0.811800
+2017-06-04 20:38:43.923978 finished epoch 42, loss: 0.022016, val acc: 0.814300, test acc: 0.815100
+2017-06-04 20:45:40.792337 finished epoch 43, loss: 0.020767, val acc: 0.813500, test acc: 0.815900
+2017-06-04 20:52:38.619114 finished epoch 44, loss: 0.020930, val acc: 0.813000, test acc: 0.812900
+2017-06-04 20:59:35.733675 finished epoch 45, loss: 0.020638, val acc: 0.812100, test acc: 0.813100
+2017-06-04 21:06:34.066540 finished epoch 46, loss: 0.019614, val acc: 0.813700, test acc: 0.812500
+2017-06-04 21:13:30.492129 finished epoch 47, loss: 0.018702, val acc: 0.814100, test acc: 0.812700
+2017-06-04 21:20:26.378489 finished epoch 48, loss: 0.018198, val acc: 0.812000, test acc: 0.814200
+2017-06-04 21:27:23.347631 finished epoch 49, loss: 0.017682, val acc: 0.814200, test acc: 0.815000
