@@ -15,3 +15,5 @@ It is unclear what the intra-sentence bias is.
 We suppose there is no projection and word embeddings are trained.
 
 XXX do DECATTword first, and do same model as first paper and then try alternative model
+
+XXX prediction threshold

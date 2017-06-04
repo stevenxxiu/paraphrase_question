@@ -18,7 +18,7 @@ class TestAttend(unittest.TestCase):
         dist_biases = np.float32(np.random.uniform(-1, 1, 2 * n_intra_bias + 1))
         with tf.Session() as sess:
             emb_ = tf.nn.embedding_lookup(emb, X_doc)
-            intra = sess.run(attend_intra(w, emb_, mask, n_intra_bias, long_dist_bias, dist_biases, 1))
+            intra = sess.run(attend_intra(w, emb_, mask, n_intra_bias, long_dist_bias, dist_biases))
 
             def get_bias(i_, j_):
                 return dist_biases[i_ - j_ + n_intra_bias] if np.abs(i_ - j_) <= n_intra_bias else long_dist_bias
@@ -38,8 +38,8 @@ class TestAttend(unittest.TestCase):
         with tf.Session() as sess:
             emb_1 = tf.nn.embedding_lookup(emb, X_doc_1)
             emb_2 = tf.nn.embedding_lookup(emb, X_doc_2)
-            attend_1 = sess.run(attend_inter(w, emb_2, mask_2, 1))
-            attend_2 = sess.run(attend_inter(tf.transpose(w, [0, 2, 1]), emb_1, mask_1, 1))
+            attend_1 = sess.run(attend_inter(w, emb_2, mask_2))
+            attend_2 = sess.run(attend_inter(tf.transpose(w, [0, 2, 1]), emb_1, mask_1))
             for i in range(5):
                 assert_almost_equal(np.sum(np.exp(w[0, i, j]) / np.sum(
                     np.exp(w[0, i, k]) for k in range(6)
