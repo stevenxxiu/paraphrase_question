@@ -134,7 +134,7 @@ def attend_inter(w, emb, mask):
 
 # noinspection PyTypeChecker
 def run_sum(
-    train, val, test, word_to_index, emb_size, emb_glove, context_size, n_classif, dropout_rate,
+    train, val, test, word_to_index, emb_size, emb_glove, context_size, n_classif, dropout_rate, pred_thres,
     lr, batch_size, epoch_size
 ):
     # special words
@@ -163,6 +163,7 @@ def run_sum(
     ] for n in n_classif], [])
     logits = apply_layers(l_classif, tf.concat(sent, 1), training=training)
     logits = tf.layers.dense(logits, 2, kernel_initializer=init_ops.RandomNormal(0, 0.01))
+    probs = tf.nn.softmax(logits)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=y))
 
     opt = tf.train.AdagradOptimizer(learning_rate=lr)
@@ -196,10 +197,10 @@ def run_sum(
                 total_loss += len(y_) * batch_loss
             for name in 'val', 'test':
                 for X_doc_1_, X_doc_2_, mask_1_, mask_2_, y_ in qs[name].get():
-                    logits_ = sess.run(logits, feed_dict={
+                    probs_ = sess.run(probs, feed_dict={
                         X_doc_1: X_doc_1_, X_doc_2: X_doc_2_, mask_1: mask_1_, mask_2: mask_2_, training: False,
                     })
-                    correct[name] += np.sum(np.argmax(logits_, 1) == y_)
+                    correct[name] += np.sum((probs_[:, 1] >= pred_thres) == y_)
             print(
                 datetime.datetime.now(),
                 f'finished epoch {i}, loss: {total_loss / len(train):f}, '
@@ -210,7 +211,7 @@ def run_sum(
 # noinspection PyTypeChecker
 def run_decatt(
     train, val, test, word_to_index, intra_sent, emb_size, emb_glove, context_size,
-    n_intra, n_intra_bias, n_attend, n_compare, n_classif, dropout_rate, lr, batch_size, epoch_size
+    n_intra, n_intra_bias, n_attend, n_compare, n_classif, dropout_rate, pred_thres, lr, batch_size, epoch_size
 ):
     # special words
     word_to_index['\0'] = len(word_to_index)
@@ -269,6 +270,7 @@ def run_decatt(
     ] for n in n_classif], [])
     logits = apply_layers(l_classif, tf.concat([agg_1, agg_2], 1), training=training)
     logits = tf.layers.dense(logits, 2, kernel_initializer=init_ops.RandomNormal(0, 0.01))
+    probs = tf.nn.softmax(logits)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=y))
 
     opt = tf.train.AdagradOptimizer(learning_rate=lr)
@@ -302,10 +304,10 @@ def run_decatt(
                 total_loss += len(y_) * batch_loss
             for name in 'val', 'test':
                 for X_doc_1_, X_doc_2_, mask_1_, mask_2_, y_ in qs[name].get():
-                    logits_ = sess.run(logits, feed_dict={
+                    probs_ = sess.run(probs, feed_dict={
                         X_doc_1: X_doc_1_, X_doc_2: X_doc_2_, mask_1: mask_1_, mask_2: mask_2_, training: False,
                     })
-                    correct[name] += np.sum(np.argmax(logits_, 1) == y_)
+                    correct[name] += np.sum((probs_[:, 1] >= pred_thres) == y_)
             print(
                 datetime.datetime.now(),
                 f'finished epoch {i}, loss: {total_loss / len(train):f}, '
