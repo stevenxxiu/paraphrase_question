@@ -1,4 +1,4 @@
-sum '{"emb_size": 300, "context_size": 1, "n_classif": [800, 400, 200], "dropout_rate": 0.1, "lr": 0.1, "batch_size": 64, "epoch_size": 50}'
+sum '{"emb_size": 300, "emb_glove": false, "context_size": 1, "n_classif": [800, 400, 200], "dropout_rate": 0.1, "lr": 0.1, "batch_size": 64, "epoch_size": 50}'
 2017-06-05 00:21:10.859953 started training
 2017-06-05 00:22:20.695033 finished epoch 0, loss: 0.625753, val acc: 0.614200, test acc: 0.603600
 2017-06-05 00:23:11.033559 finished epoch 1, loss: 0.600540, val acc: 0.599700, test acc: 0.594100
