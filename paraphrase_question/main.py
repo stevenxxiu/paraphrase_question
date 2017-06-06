@@ -82,13 +82,7 @@ def apply_layers(layers, input_, **kwargs):
     return input_
 
 
-def rolling_window(a, window):
-    shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
-    strides = a.strides + (a.strides[-1],)
-    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
-
-
-def sample(docs, word_to_index, context_size, epoch_size, batch_size, q):
+def sample(docs, word_to_index, epoch_size, batch_size, q):
     for i in range(epoch_size):
         res = []
         p = np.random.permutation(len(docs))
@@ -96,8 +90,8 @@ def sample(docs, word_to_index, context_size, epoch_size, batch_size, q):
             k = p[j:j + batch_size]
             max_len_1 = max(len(docs[k_][0]) for k_ in k)
             max_len_2 = max(len(docs[k_][1]) for k_ in k)
-            X_doc_1_ = np.full([len(k), max_len_1 + context_size * 2], word_to_index['\0'])
-            X_doc_2_ = np.full([len(k), max_len_2 + context_size * 2], word_to_index['\0'])
+            X_doc_1_ = np.full([len(k), max_len_1], word_to_index['\0'])
+            X_doc_2_ = np.full([len(k), max_len_2], word_to_index['\0'])
             mask_1_ = np.zeros([len(k), max_len_1], dtype=np.float32)
             mask_2_ = np.zeros([len(k), max_len_2], dtype=np.float32)
             y_ = [docs[k_][2] for k_ in k]
@@ -106,12 +100,10 @@ def sample(docs, word_to_index, context_size, epoch_size, batch_size, q):
                 doc_2 = [word_to_index[word] for word in docs[k_][1] if word in word_to_index]
                 doc_1 = doc_1 or [np.random.randint(len(word_to_index))]
                 doc_2 = doc_2 or [np.random.randint(len(word_to_index))]
-                X_doc_1_[i_k, context_size:len(doc_1) + context_size] = doc_1
-                X_doc_2_[i_k, context_size:len(doc_2) + context_size] = doc_2
+                X_doc_1_[i_k, :len(doc_1)] = doc_1
+                X_doc_2_[i_k, :len(doc_2)] = doc_2
                 mask_1_[i_k, :len(doc_1)] = 1
                 mask_2_[i_k, :len(doc_2)] = 1
-            X_doc_1_ = rolling_window(X_doc_1_, context_size * 2 + 1)
-            X_doc_2_ = rolling_window(X_doc_2_, context_size * 2 + 1)
             res.append((X_doc_1_, X_doc_2_, mask_1_, mask_2_, y_))
         q.put(res)
 
@@ -134,16 +126,16 @@ def attend_inter(w, emb, mask):
 
 # noinspection PyTypeChecker
 def run_sum(
-    train, val, test, word_to_index, emb_size, emb_glove, context_size, n_classif, dropout_rate, pred_thres,
-    lr, batch_size, epoch_size
+    train, val, test, word_to_index, emb_size, emb_glove, context_size, n_proj, n_classif,
+    dropout_rate, pred_thres, lr, batch_size, epoch_size
 ):
     # special words
     word_to_index['\0'] = len(word_to_index)
 
     # network
     tf.reset_default_graph()
-    X_doc_1 = tf.placeholder(tf.int32, [None, None, 2 * context_size + 1])
-    X_doc_2 = tf.placeholder(tf.int32, [None, None, 2 * context_size + 1])
+    X_doc_1 = tf.placeholder(tf.int32, [None, None])
+    X_doc_2 = tf.placeholder(tf.int32, [None, None])
     mask_1 = tf.placeholder(tf.float32, [None, None])
     mask_2 = tf.placeholder(tf.float32, [None, None])
     y = tf.placeholder(tf.int32, [None])
@@ -151,11 +143,29 @@ def run_sum(
 
     emb_shape = [len(word_to_index), emb_size]
     emb = tf.Variable(tf.zeros(emb_shape) if emb_glove else tf.random_normal(emb_shape, 0, 1))
-    emb_ = [tf.reshape(
-        tf.nn.embedding_lookup(emb, [X_doc_1, X_doc_2][i]),
-        [tf.shape([X_doc_1, X_doc_2][i])[0], -1, (2 * context_size + 1) * emb_size]
-    ) for i in range(2)]
-    sent = [tf.reduce_sum(tf.expand_dims([mask_1, mask_2][i], -1) * emb_[i], 1) for i in range(2)]
+
+    sent = [None, None]
+    l_proj = sum([[
+        Dense(n, tf.nn.relu, kernel_initializer=init_ops.RandomNormal(0, 0.01)),
+        Dropout(rate=dropout_rate),
+    ] for n in n_proj], [])
+    for i in range(2):
+        X_doc = [X_doc_1, X_doc_2][i]
+        mask = [mask_1, mask_2][i]
+        unigram = tf.nn.embedding_lookup(emb, X_doc)
+        batch_size_, n_words_ = tf.shape(X_doc)[0], tf.shape(X_doc)[1]
+        X_doc_pad = tf.fill([batch_size_, 2 * context_size], word_to_index['\0'])
+        X_doc_n = tf.concat([X_doc_pad, X_doc, X_doc_pad], 1)
+        X_doc_n = tf.map_fn(lambda j: X_doc_n[:, j:j + n_words_ + 2 * context_size], tf.range(2 * context_size + 1))
+        X_doc_n = tf.transpose(X_doc_n, [1, 0, 2])
+        mask_n = tf.concat([tf.ones([batch_size_, 2 * context_size]), mask], 1)
+        ngram = tf.nn.embedding_lookup(emb, X_doc_n)
+        ngram = tf.reshape(ngram, [batch_size_, -1, (2 * context_size + 1) * emb_size])
+        ngram = apply_layers(l_proj, ngram, training=training)
+        sent[i] = tf.concat([
+            tf.reduce_sum(tf.expand_dims(mask, -1) * unigram, 1),
+            tf.reduce_sum(tf.expand_dims(mask_n, -1) * ngram, 1)
+        ], 1)
 
     l_classif = sum([[
         Dense(n, tf.nn.relu, kernel_initializer=init_ops.RandomNormal(0, 0.01)),
@@ -176,7 +186,7 @@ def run_sum(
         # start sampling
         qs = {name: Queue(1) for name in ('train', 'val', 'test')}
         for name, docs in ('train', train), ('val', val), ('test', test):
-            Process(target=sample, args=(docs, word_to_index, context_size, epoch_size, batch_size, qs[name])).start()
+            Process(target=sample, args=(docs, word_to_index, epoch_size, batch_size, qs[name])).start()
 
         # initialize variables
         sess.run(tf.global_variables_initializer())
@@ -227,10 +237,19 @@ def run_decatt(
 
     emb_shape = [len(word_to_index), emb_size]
     emb = tf.Variable(tf.zeros(emb_shape) if emb_glove else tf.random_normal(emb_shape, 0, 1))
-    emb_ = [tf.reshape(
-        tf.nn.embedding_lookup(emb, [X_doc_1, X_doc_2][i]),
-        [tf.shape([X_doc_1, X_doc_2][i])[0], -1, (2 * context_size + 1) * emb_size]
-    ) for i in range(2)]
+
+    ngram, mask_n = [None, None], [None, None]
+    for i in range(2):
+        X_doc = [X_doc_1, X_doc_2][i]
+        batch_size_, n_words_ = tf.shape(X_doc)[0], tf.shape(X_doc)[1]
+        X_doc_pad = tf.fill([batch_size_, 2 * context_size], word_to_index['\0'])
+        X_doc_n = tf.concat([X_doc_pad, X_doc, X_doc_pad], 1)
+        X_doc_n = tf.map_fn(lambda j: X_doc_n[:, j:j + n_words_ + 2 * context_size], tf.range(2 * context_size + 1))
+        X_doc_n = tf.transpose(X_doc_n, [1, 0, 2])
+        mask_n = tf.concat([tf.ones([batch_size_, 2 * context_size]), [mask_1, mask_2][i]], 1)
+        ngram = tf.nn.embedding_lookup(emb, X_doc_n)
+        ngram[i] = tf.reshape(ngram, [batch_size_, -1, (2 * context_size + 1) * emb_size])
+
     if intra_sent:
         l_intra = sum([[
             Dense(n, tf.nn.relu, kernel_initializer=init_ops.RandomNormal(0, 0.01)),
@@ -239,31 +258,31 @@ def run_decatt(
         long_dist_bias = tf.Variable(tf.zeros([]))
         dist_biases = tf.Variable(tf.zeros([2 * n_intra_bias + 1]))
         for i in range(2):
-            intra_d = apply_layers(l_intra, emb_[i], training=training)
+            intra_d = apply_layers(l_intra, ngram[i], training=training)
             intra_w = tf.matmul(intra_d, tf.transpose(intra_d, [0, 2, 1]))
-            emb_[i] = tf.concat([emb_[i], attend_intra(
-                intra_w, emb_[i], [mask_1, mask_2][i], n_intra_bias, long_dist_bias, dist_biases
+            ngram[i] = tf.concat([ngram[i], attend_intra(
+                intra_w, ngram[i], mask_n[i], n_intra_bias, long_dist_bias, dist_biases
             )], 2)
 
     l_attend = sum([[
         Dense(n, tf.nn.relu, kernel_initializer=init_ops.RandomNormal(0, 0.01)),
         Dropout(rate=dropout_rate),
     ] for n in n_attend], [])
-    attend_d_1 = apply_layers(l_attend, emb_[0], training=training)
-    attend_d_2 = apply_layers(l_attend, emb_[1], training=training)
+    attend_d_1 = apply_layers(l_attend, ngram[0], training=training)
+    attend_d_2 = apply_layers(l_attend, ngram[1], training=training)
     attend_w = tf.matmul(attend_d_1, tf.transpose(attend_d_2, [0, 2, 1]))
-    attend_1 = attend_inter(attend_w, emb_[1], mask_2)
-    attend_2 = attend_inter(tf.transpose(attend_w, [0, 2, 1]), emb_[0], mask_1)
+    attend_1 = attend_inter(attend_w, ngram[1], mask_n[1])
+    attend_2 = attend_inter(tf.transpose(attend_w, [0, 2, 1]), ngram[0], mask_n[0])
 
     l_compare = sum([[
         Dense(n, tf.nn.relu, kernel_initializer=init_ops.RandomNormal(0, 0.01)),
         Dropout(rate=dropout_rate),
     ] for n in n_compare], [])
-    compare_1 = apply_layers(l_compare, tf.concat([emb_[0], attend_1], 2), training=training)
-    compare_2 = apply_layers(l_compare, tf.concat([emb_[1], attend_2], 2), training=training)
+    compare_1 = apply_layers(l_compare, tf.concat([ngram[0], attend_1], 2), training=training)
+    compare_2 = apply_layers(l_compare, tf.concat([ngram[1], attend_2], 2), training=training)
 
-    agg_1 = tf.reduce_sum(tf.expand_dims(mask_1, -1) * compare_1, 1)
-    agg_2 = tf.reduce_sum(tf.expand_dims(mask_2, -1) * compare_2, 1)
+    agg_1 = tf.reduce_sum(tf.expand_dims(mask_n[0], -1) * compare_1, 1)
+    agg_2 = tf.reduce_sum(tf.expand_dims(mask_n[1], -1) * compare_2, 1)
     l_classif = sum([[
         Dense(n, tf.nn.relu, kernel_initializer=init_ops.RandomNormal(0, 0.01)),
         Dropout(rate=dropout_rate),
