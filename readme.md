@@ -10,10 +10,8 @@ Are there OOV n-gram characters? (it's possible that some words have no n-grams 
 
 We suppose the context window for "abc" is "00a", "0ab", "abc", "bc0", "c00".
 
-We do not include null or OOV words since these are not mentioned in the paper. For documents with no words (once OOV words removed), we sample a random word uniformly to avoid model issues, since all of these pairs are negative.
+We do not include null words since these are not mentioned in the paper. We include OOV words of GloVe since even rare words appear often in the validation and test sets due to question overlap. Even if not the case probably will do better due to use of trigrams instead of just words since OOV words should be part of the trigram. OOV words in validation and test are thus untrained.
 
 It is unclear what the intra-sentence bias is.
 
 We suppose there is no projection and word embeddings are trained.
-
-XXX try adding unknown words again as `<unk>`

@@ -48,6 +48,9 @@ def gen_tables(train, val, test):
             if words[0] in word_to_freq:
                 vecs.append(np.array(list(map(np.float32, words[1:]))))
                 word_to_index[words[0]] = len(word_to_index)
+    for word in word_to_freq:
+        if word not in word_to_index:
+            word_to_index[word] = len(word_to_index)
 
     # visualize embeddings
     path = '__cache__/tf/emb'
@@ -98,8 +101,6 @@ def sample(docs, word_to_index, epoch_size, batch_size, q):
             for i_k, k_ in enumerate(k):
                 doc_1 = [word_to_index[word] for word in docs[k_][0] if word in word_to_index]
                 doc_2 = [word_to_index[word] for word in docs[k_][1] if word in word_to_index]
-                doc_1 = doc_1 or [np.random.randint(len(word_to_index))]
-                doc_2 = doc_2 or [np.random.randint(len(word_to_index))]
                 X_doc_1_[i_k, :len(doc_1)] = doc_1
                 X_doc_2_[i_k, :len(doc_2)] = doc_2
                 mask_1_[i_k, :len(doc_1)] = 1
@@ -142,7 +143,7 @@ def run_sum(
     training = tf.placeholder(tf.bool, [])
 
     emb_shape = [len(word_to_index), emb_size]
-    emb = tf.Variable(tf.zeros(emb_shape) if emb_glove else tf.random_normal(emb_shape, 0, 1))
+    emb = tf.Variable(tf.zeros(emb_shape) if emb_glove else tf.random_normal(emb_shape, 0, 0.01))
 
     sent = [None, None]
     l_proj = sum([[
@@ -236,7 +237,7 @@ def run_decatt(
     training = tf.placeholder(tf.bool, [])
 
     emb_shape = [len(word_to_index), emb_size]
-    emb = tf.Variable(tf.zeros(emb_shape) if emb_glove else tf.random_normal(emb_shape, 0, 1))
+    emb = tf.Variable(tf.zeros(emb_shape) if emb_glove else tf.random_normal(emb_shape, 0, 0.01))
 
     ngram, mask_n = [None, None], [None, None]
     for i in range(2):

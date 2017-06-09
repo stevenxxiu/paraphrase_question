@@ -1,5 +1,3 @@
 method,emb,threshold,lr,batch size,train epochs,train loss,best val acc,test acc on best val acc,run id
-sum,rand,0.3,adagrad 0.1,64,100,0.012881,0.818400,0.810400,003
-sum,glove,0.3,adagrad 0.1,64,100,0.127542,0.834100,0.825000,002
-decatt,rand,0.3,adagrad 0.1,64,100,0.011458,0.822400,0.822400,005
-decatt,glove,0.3,adagrad 0.1,64,100,0.031694,0.847500,0.850600,004
+sum,rand,0.3,adagrad 0.1,64,100,0.001443,0.843000,0.833300,008
+sum,glove,0.3,adagrad 0.1,64,100,0.035895,0.841200,0.834300,007
