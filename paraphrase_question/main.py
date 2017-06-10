@@ -156,18 +156,17 @@ def run_sum(
         mask = [mask_1, mask_2][i]
         unigram = tf.nn.embedding_lookup(emb, X_doc)
         batch_size_, n_words_ = tf.shape(X_doc)[0], tf.shape(X_doc)[1]
-        X_doc_start = tf.fill([batch_size_, 2 * context_size], word_to_index['<sent>'])
-        X_doc_end = tf.fill([batch_size_, 2 * context_size], word_to_index['</sent>'])
+        X_doc_start = tf.fill([batch_size_, context_size], word_to_index['<sent>'])
+        X_doc_end = tf.fill([batch_size_, context_size], word_to_index['</sent>'])
         X_doc_n = tf.concat([X_doc_start, X_doc, X_doc_end], 1)
-        X_doc_n = tf.map_fn(lambda j: X_doc_n[:, j:j + n_words_ + 2 * context_size], tf.range(2 * context_size + 1))
+        X_doc_n = tf.map_fn(lambda j: X_doc_n[:, j:j + n_words_], tf.range(2 * context_size + 1))
         X_doc_n = tf.transpose(X_doc_n, [1, 0, 2])
-        mask_n = tf.concat([tf.ones([batch_size_, 2 * context_size]), mask], 1)
         ngram = tf.nn.embedding_lookup(emb, X_doc_n)
         ngram = tf.reshape(ngram, [batch_size_, -1, (2 * context_size + 1) * emb_size])
         ngram = apply_layers(l_proj, ngram, training=training)
         sent[i] = tf.concat([
             tf.reduce_sum(tf.expand_dims(mask, -1) * unigram, 1),
-            tf.reduce_sum(tf.expand_dims(mask_n, -1) * ngram, 1)
+            tf.reduce_sum(tf.expand_dims(mask, -1) * ngram, 1)
         ], 1)
 
     l_classif = sum([[
@@ -242,16 +241,15 @@ def run_decatt(
     emb_shape = [len(word_to_index), emb_size]
     emb = tf.Variable(tf.zeros(emb_shape) if emb_glove else tf.random_normal(emb_shape, 0, 0.01))
 
-    ngram, mask_n = [None, None], [None, None]
+    ngram = [None, None]
     for i in range(2):
         X_doc = [X_doc_1, X_doc_2][i]
         batch_size_, n_words_ = tf.shape(X_doc)[0], tf.shape(X_doc)[1]
-        X_doc_start = tf.fill([batch_size_, 2 * context_size], word_to_index['<sent>'])
-        X_doc_end = tf.fill([batch_size_, 2 * context_size], word_to_index['</sent>'])
+        X_doc_start = tf.fill([batch_size_, context_size], word_to_index['<sent>'])
+        X_doc_end = tf.fill([batch_size_, context_size], word_to_index['</sent>'])
         X_doc_n = tf.concat([X_doc_start, X_doc, X_doc_end], 1)
-        X_doc_n = tf.map_fn(lambda j: X_doc_n[:, j:j + n_words_ + 2 * context_size], tf.range(2 * context_size + 1))
+        X_doc_n = tf.map_fn(lambda j: X_doc_n[:, j:j + n_words_], tf.range(2 * context_size + 1))
         X_doc_n = tf.transpose(X_doc_n, [1, 0, 2])
-        mask_n = tf.concat([tf.ones([batch_size_, 2 * context_size]), [mask_1, mask_2][i]], 1)
         ngram = tf.nn.embedding_lookup(emb, X_doc_n)
         ngram[i] = tf.reshape(ngram, [batch_size_, -1, (2 * context_size + 1) * emb_size])
 
@@ -266,7 +264,7 @@ def run_decatt(
             intra_d = apply_layers(l_intra, ngram[i], training=training)
             intra_w = tf.matmul(intra_d, tf.transpose(intra_d, [0, 2, 1]))
             ngram[i] = tf.concat([ngram[i], attend_intra(
-                intra_w, ngram[i], mask_n[i], n_intra_bias, long_dist_bias, dist_biases
+                intra_w, ngram[i], [mask_1, mask_2][i], n_intra_bias, long_dist_bias, dist_biases
             )], 2)
 
     l_attend = sum([[
@@ -276,8 +274,8 @@ def run_decatt(
     attend_d_1 = apply_layers(l_attend, ngram[0], training=training)
     attend_d_2 = apply_layers(l_attend, ngram[1], training=training)
     attend_w = tf.matmul(attend_d_1, tf.transpose(attend_d_2, [0, 2, 1]))
-    attend_1 = attend_inter(attend_w, ngram[1], mask_n[1])
-    attend_2 = attend_inter(tf.transpose(attend_w, [0, 2, 1]), ngram[0], mask_n[0])
+    attend_1 = attend_inter(attend_w, ngram[1], mask_2)
+    attend_2 = attend_inter(tf.transpose(attend_w, [0, 2, 1]), ngram[0], mask_1)
 
     l_compare = sum([[
         Dense(n, tf.nn.relu, kernel_initializer=init_ops.RandomNormal(0, 0.01)),
@@ -286,8 +284,8 @@ def run_decatt(
     compare_1 = apply_layers(l_compare, tf.concat([ngram[0], attend_1], 2), training=training)
     compare_2 = apply_layers(l_compare, tf.concat([ngram[1], attend_2], 2), training=training)
 
-    agg_1 = tf.reduce_sum(tf.expand_dims(mask_n[0], -1) * compare_1, 1)
-    agg_2 = tf.reduce_sum(tf.expand_dims(mask_n[1], -1) * compare_2, 1)
+    agg_1 = tf.reduce_sum(tf.expand_dims(mask_1, -1) * compare_1, 1)
+    agg_2 = tf.reduce_sum(tf.expand_dims(mask_2, -1) * compare_2, 1)
     l_classif = sum([[
         Dense(n, tf.nn.relu, kernel_initializer=init_ops.RandomNormal(0, 0.01)),
         Dropout(rate=dropout_rate),
