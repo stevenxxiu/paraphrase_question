@@ -93,8 +93,8 @@ def sample(docs, word_to_index, epoch_size, batch_size, q):
             k = p[j:j + batch_size]
             max_len_1 = max(len(docs[k_][0]) for k_ in k)
             max_len_2 = max(len(docs[k_][1]) for k_ in k)
-            X_doc_1_ = np.full([len(k), max_len_1], word_to_index['\0'])
-            X_doc_2_ = np.full([len(k), max_len_2], word_to_index['\0'])
+            X_doc_1_ = np.full([len(k), max_len_1], word_to_index['</sent>'])
+            X_doc_2_ = np.full([len(k), max_len_2], word_to_index['</sent>'])
             mask_1_ = np.zeros([len(k), max_len_1], dtype=np.float32)
             mask_2_ = np.zeros([len(k), max_len_2], dtype=np.float32)
             y_ = [docs[k_][2] for k_ in k]
@@ -131,7 +131,8 @@ def run_sum(
     dropout_rate, pred_thres, lr, batch_size, epoch_size
 ):
     # special words
-    word_to_index['\0'] = len(word_to_index)
+    word_to_index['<sent>'] = len(word_to_index)
+    word_to_index['</sent>'] = len(word_to_index)
 
     # network
     tf.reset_default_graph()
@@ -155,8 +156,9 @@ def run_sum(
         mask = [mask_1, mask_2][i]
         unigram = tf.nn.embedding_lookup(emb, X_doc)
         batch_size_, n_words_ = tf.shape(X_doc)[0], tf.shape(X_doc)[1]
-        X_doc_pad = tf.fill([batch_size_, 2 * context_size], word_to_index['\0'])
-        X_doc_n = tf.concat([X_doc_pad, X_doc, X_doc_pad], 1)
+        X_doc_start = tf.fill([batch_size_, 2 * context_size], word_to_index['<sent>'])
+        X_doc_end = tf.fill([batch_size_, 2 * context_size], word_to_index['</sent>'])
+        X_doc_n = tf.concat([X_doc_start, X_doc, X_doc_end], 1)
         X_doc_n = tf.map_fn(lambda j: X_doc_n[:, j:j + n_words_ + 2 * context_size], tf.range(2 * context_size + 1))
         X_doc_n = tf.transpose(X_doc_n, [1, 0, 2])
         mask_n = tf.concat([tf.ones([batch_size_, 2 * context_size]), mask], 1)
@@ -225,7 +227,8 @@ def run_decatt(
     n_intra, n_intra_bias, n_attend, n_compare, n_classif, dropout_rate, pred_thres, lr, batch_size, epoch_size
 ):
     # special words
-    word_to_index['\0'] = len(word_to_index)
+    word_to_index['<sent>'] = len(word_to_index)
+    word_to_index['</sent>'] = len(word_to_index)
 
     # network
     tf.reset_default_graph()
@@ -243,8 +246,9 @@ def run_decatt(
     for i in range(2):
         X_doc = [X_doc_1, X_doc_2][i]
         batch_size_, n_words_ = tf.shape(X_doc)[0], tf.shape(X_doc)[1]
-        X_doc_pad = tf.fill([batch_size_, 2 * context_size], word_to_index['\0'])
-        X_doc_n = tf.concat([X_doc_pad, X_doc, X_doc_pad], 1)
+        X_doc_start = tf.fill([batch_size_, 2 * context_size], word_to_index['<sent>'])
+        X_doc_end = tf.fill([batch_size_, 2 * context_size], word_to_index['</sent>'])
+        X_doc_n = tf.concat([X_doc_start, X_doc, X_doc_end], 1)
         X_doc_n = tf.map_fn(lambda j: X_doc_n[:, j:j + n_words_ + 2 * context_size], tf.range(2 * context_size + 1))
         X_doc_n = tf.transpose(X_doc_n, [1, 0, 2])
         mask_n = tf.concat([tf.ones([batch_size_, 2 * context_size]), [mask_1, mask_2][i]], 1)
